@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="一个简洁、响应式、支持本地存储的 Todo List 页面" />
+  <title>Todo List</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #111827;
+      --danger: #dc2626;
+      --shadow: 0 16px 40px rgba(17, 24, 39, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #fafafa 0%, var(--bg) 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+
+    .app { width: min(720px, 100%); }
+
+    .header { margin-bottom: 22px; }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(32px, 6vw, 52px);
+      letter-spacing: -0.04em;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .input-wrap {
+      display: flex;
+      gap: 10px;
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-size: 16px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #9ca3af;
+      box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.06);
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    .add {
+      background: var(--accent);
+      color: #fff;
+      padding: 0 18px;
+    }
+
+    .add:hover { opacity: 0.88; }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter {
+      background: #f3f4f6;
+      color: #374151;
+      padding: 8px 12px;
+    }
+
+    .filter.active {
+      background: #111827;
+      color: white;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    li:last-child { border-bottom: 0; }
+
+    .check {
+      width: 20px;
+      height: 20px;
+      accent-color: #111827;
+      cursor: pointer;
+    }
+
+    .task {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .completed .task {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+
+    .delete {
+      background: transparent;
+      color: #9ca3af;
+      padding: 8px;
+      font-size: 18px;
+    }
+
+    .delete:hover {
+      color: var(--danger);
+      background: #fef2f2;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 44px 18px;
+      color: var(--muted);
+    }
+
+    .footer {
+      margin-top: 14px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 26px 14px; }
+      .input-wrap { flex-direction: column; }
+      .add { padding: 13px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>Todo List</h1>
+      <p>记录任务，专注完成。数据会自动保存在浏览器中。</p>
+    </header>
+
+    <section class="card" aria-label="Todo List">
+      <div class="input-wrap">
+        <input id="todoInput" type="text" maxlength="120" placeholder="添加一个新任务…" aria-label="新任务" />
+        <button class="add" id="addBtn" type="button">添加</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters" aria-label="任务筛选">
+          <button class="filter active" data-filter="all" type="button">全部</button>
+          <button class="filter" data-filter="active" type="button">未完成</button>
+          <button class="filter" data-filter="completed" type="button">已完成</button>
+        </div>
+        <div class="count" id="count"></div>
+      </div>
+
+      <ul id="todoList"></ul>
+      <div class="empty" id="emptyState">还没有任务，先添加一个吧。</div>
+    </section>
+
+    <div class="footer">Todo List · Vanilla HTML / CSS / JavaScript</div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "todo-list-items-v1";
+    let todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    let currentFilter = "all";
+
+    const input = document.getElementById("todoInput");
+    const addBtn = document.getElementById("addBtn");
+    const list = document.getElementById("todoList");
+    const emptyState = document.getElementById("emptyState");
+    const count = document.getElementById("count");
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    }
+
+    function addTodo() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      todos.unshift({
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        text,
+        completed: false
+      });
+
+      input.value = "";
+      save();
+      render();
+      input.focus();
+    }
+
+    function toggleTodo(id) {
+      todos = todos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      );
+      save();
+      render();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(todo => todo.id !== id);
+      save();
+      render();
+    }
+
+    function filteredTodos() {
+      if (currentFilter === "active") return todos.filter(todo => !todo.completed);
+      if (currentFilter === "completed") return todos.filter(todo => todo.completed);
+      return todos;
+    }
+
+    function render() {
+      const visible = filteredTodos();
+      list.innerHTML = "";
+
+      visible.forEach(todo => {
+        const li = document.createElement("li");
+        if (todo.completed) li.classList.add("completed");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "check";
+        checkbox.checked = todo.completed;
+        checkbox.setAttribute("aria-label", `切换任务状态：${todo.text}`);
+        checkbox.addEventListener("change", () => toggleTodo(todo.id));
+
+        const span = document.createElement("span");
+        span.className = "task";
+        span.textContent = todo.text;
+
+        const del = document.createElement("button");
+        del.className = "delete";
+        del.textContent = "×";
+        del.type = "button";
+        del.title = "删除任务";
+        del.setAttribute("aria-label", `删除任务：${todo.text}`);
+        del.addEventListener("click", () => deleteTodo(todo.id));
+
+        li.append(checkbox, span, del);
+        list.appendChild(li);
+      });
+
+      emptyState.style.display = visible.length ? "none" : "block";
+      const activeCount = todos.filter(todo => !todo.completed).length;
+      count.textContent = `${activeCount} 个任务待完成`;
+
+      document.querySelectorAll(".filter").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.filter === currentFilter);
+      });
+    }
+
+    addBtn.addEventListener("click", addTodo);
+
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") addTodo();
+    });
+
+    document.querySelectorAll(".filter").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentFilter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
