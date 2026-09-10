@@ -54,13 +54,15 @@
     }
 
     .input-wrap {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 10px;
       padding: 18px;
       border-bottom: 1px solid var(--border);
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="date"] {
       flex: 1;
       min-width: 0;
       border: 1px solid var(--border);
@@ -71,9 +73,15 @@
       transition: 0.2s;
     }
 
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    input[type="date"]:focus {
       border-color: #9ca3af;
       box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.06);
+    }
+
+    input[type="date"] {
+      color: var(--text);
+      background: #fff;
     }
 
     button {
@@ -148,8 +156,25 @@
     }
 
     .task {
-      flex: 1;
       word-break: break-word;
+    }
+
+    .task-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .due-date {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .due-date.overdue {
+      color: var(--danger);
+      font-weight: 700;
     }
 
     .completed .task {
@@ -184,7 +209,7 @@
 
     @media (max-width: 520px) {
       body { padding: 26px 14px; }
-      .input-wrap { flex-direction: column; }
+      .input-wrap { grid-template-columns: 1fr; }
       .add { padding: 13px 18px; }
     }
   </style>
@@ -199,6 +224,7 @@
     <section class="card" aria-label="Todo List">
       <div class="input-wrap">
         <input id="todoInput" type="text" maxlength="120" placeholder="添加一个新任务…" aria-label="新任务" />
+        <input id="dueDateInput" type="date" aria-label="截止日期" title="截止日期（可选）" />
         <button class="add" id="addBtn" type="button">添加</button>
       </div>
 
@@ -224,6 +250,7 @@
     let currentFilter = "all";
 
     const input = document.getElementById("todoInput");
+    const dueDateInput = document.getElementById("dueDateInput");
     const addBtn = document.getElementById("addBtn");
     const list = document.getElementById("todoList");
     const emptyState = document.getElementById("emptyState");
@@ -240,10 +267,12 @@
       todos.unshift({
         id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
         text,
-        completed: false
+        completed: false,
+        dueDate: dueDateInput.value
       });
 
       input.value = "";
+      dueDateInput.value = "";
       save();
       render();
       input.focus();
@@ -269,6 +298,22 @@
       return todos;
     }
 
+    function localDateString(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatDueDate(dateString) {
+      const [year, month, day] = dateString.split("-").map(Number);
+      return new Intl.DateTimeFormat("zh-CN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      }).format(new Date(year, month - 1, day));
+    }
+
     function render() {
       const visible = filteredTodos();
       list.innerHTML = "";
@@ -284,9 +329,21 @@
         checkbox.setAttribute("aria-label", `切换任务状态：${todo.text}`);
         checkbox.addEventListener("change", () => toggleTodo(todo.id));
 
+        const taskContent = document.createElement("div");
+        taskContent.className = "task-content";
+
         const span = document.createElement("span");
         span.className = "task";
         span.textContent = todo.text;
+        taskContent.appendChild(span);
+
+        if (todo.dueDate) {
+          const dueDate = document.createElement("span");
+          const overdue = !todo.completed && todo.dueDate < localDateString();
+          dueDate.className = `due-date${overdue ? " overdue" : ""}`;
+          dueDate.textContent = `${overdue ? "已逾期 · " : "截止 "}${formatDueDate(todo.dueDate)}`;
+          taskContent.appendChild(dueDate);
+        }
 
         const del = document.createElement("button");
         del.className = "delete";
@@ -296,7 +353,7 @@
         del.setAttribute("aria-label", `删除任务：${todo.text}`);
         del.addEventListener("click", () => deleteTodo(todo.id));
 
-        li.append(checkbox, span, del);
+        li.append(checkbox, taskContent, del);
         list.appendChild(li);
       });
 
